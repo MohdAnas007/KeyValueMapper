@@ -55,11 +55,12 @@ function ReqtoSelect(){
     return false;
 
 }
-async function TestApi(test=50){
+
+async function TestApi(test=10000,duration){
    
     let start=Date.now();
     for(let i=0;i<test;i++){
-
+            if(Date.now()-start>=duration)break;
        
         
          if(ReqtoSelect()){
@@ -81,4 +82,7 @@ async function TestApi(test=50){
    console.log("Request/sec",(test/timetaken).toFixed(2));
 
 }
-TestApi(10000*2);
+
+TestApi(100000,1000);
+
+// TestApi(10000*5);
