@@ -1,101 +1,79 @@
 
 const express=require('express');
+
+const {Connection}=require('./connection/connection');
+
 const PORT=8000;
 const app=express();
 const fs=require('fs');
 app.use(express.json());
- function checkKey(key){
-    const file=fs.readFileSync('key.txt','utf-8');
-    const word=file.trim().split('\n');
-    // console.log(word);
+//  function checkKey(key){
+//     const file=fs.readFileSync('key.txt','utf-8');
+//     const word=file.trim().split('\n');
+//     // console.log(word);
 
-    for(let x of word){
-        if(x===key){
-            return true;
+//     for(let x of word){
+//         if(x===key){
+//             return true;
 
-        }
-    }
+//         }
+//     }
 
-    return false;
+//     return false;
 
- }
-
-
+//  }
 
 
-app.post('/postvalue',(req,res)=>{
+
+
+app.post('/postvalue',async (req,res)=>{
     const {key,val}=req.body;
     // console.log(key,val); 
     // check here if the key is already present or not 
-    if(checkKey(key)){
+    // console.log(key,val);
+   
+
+
+    
+    
+    const result2=await Connection(`SELECT COUNT(*) FROM store WHERE "Key"=$1`,[key]);
+    if(parseInt(result2.rows[0].count)>0){
+        console.log(result2.rows.length);
         res.status(400).json({"message":"key is already present"});
         return ;
 
     }
-
-    fs.writeFile('key.txt',`${key}\n`,{flag:'a',encoding:'utf-8'},(err)=>{console.log(err);});
-    fs.writeFile('values.txt',`${String(val)}\n`,{flag:'a',encoding:'utf-8'},(err)=>{console.log(err);});
-        
-        
-        
-        
-        
-        
-    res.status(201).json({
-    "message":"key value recieved",
-    "key":key,
-    "value":val
+    else {
+         const query =`INSERT INTO store("Key","Value") VALUES($1,$2)`;
+         const params=[key,val];
+         const result =await Connection(query,params);
+         console.log("value added successfully");
+         res.status(201).json({"message":"value added"});
+         return ;
 
 
-   });
-  
 
+    }
 
-  
-
-   
 })
 
-app.get('/getkey/:somekey',(req,res)=>{
+app.get('/getkey/:somekey',async (req,res)=>{
     const key=req.params.somekey;
-    // console.log(key);
+    const query=`SELECT * FROM store WHERE "Key"=$1 `;
+    const params=[key];
+    const result= await Connection(query,params);
+    console.log(result.rows);
+    if(result.rows.length==0){
+        res.status(404).json({"message":"key not found"});
+        return ;
 
-    // console.log(key);    
-    let file1=fs.readFileSync('key.txt','utf-8');
-    file1=file1.trim().split('\n');
-
-    let file2=fs.readFileSync('values.txt','utf-8');
-    file2=file2.trim().split('\n');
-
-    let index=-1;
-    for(let i=0;i<file1.length;i++){
-        if(file1[i]===key){
-            index=i;
-            break;
-
-        }
-    }
-    if(index==-1){
-        res.status(400).json({"message":"key not present "});
-        return;
 
     }
     else{
-            let valToReturn=file2[index];
-            valToReturn=valToReturn.trim();
-
-    // console.log(valToReturn);
-            res.status(201).send(`value is -> ${valToReturn}`);
-            return;
+        res.status(201).json({value:result.rows[0].Value});
+        return;
 
     }
-    
-
-
-
-   
-    // console.log(file1,file2);
-    res.status(500).json({"message":"server error"});
 
 })
 
